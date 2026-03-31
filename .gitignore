@@ -26,7 +26,7 @@ checkpoints/
 *.pth
 
 # Data files
-data/
+/data/
 *.txt
 !requirements.txt
 
