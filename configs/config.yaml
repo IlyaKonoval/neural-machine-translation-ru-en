@@ -1,0 +1,31 @@
+data:
+  data_path: "data/rus.txt"
+  max_samples: null
+  max_length: 128
+
+model:
+  tokenizer: "bert-base-uncased"
+  embed_size: 256
+  num_layers: 4
+  heads: 8
+  ff_hidden_size: 1024
+  dropout: 0.1
+
+training:
+  batch_size: 32
+  n_epochs: 15
+  learning_rate: 0.0001
+  clip: 1.0
+  num_workers: 0
+  scheduler:
+    patience: 3
+    factor: 0.5
+    min_lr: 0.000001
+
+paths:
+  checkpoint_dir: "checkpoints"
+  best_model: "checkpoints/best_model.pt"
+
+inference:
+  max_len: 128
+  beam_size: 5
