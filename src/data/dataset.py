@@ -34,8 +34,12 @@ def load_data(
 
 
 def _tokenize_fn(examples, tokenizer, max_length=128):
-    source = tokenizer(examples["ru"], padding="max_length", truncation=True, max_length=max_length)
-    target = tokenizer(examples["en"], padding="max_length", truncation=True, max_length=max_length)
+    source = tokenizer(
+        examples["ru"], padding="max_length", truncation=True, max_length=max_length
+    )
+    target = tokenizer(
+        examples["en"], padding="max_length", truncation=True, max_length=max_length
+    )
     source["labels"] = target["input_ids"]
     return source
 
@@ -44,8 +48,12 @@ def _collate_fn(batch, pad_token_id):
     input_ids = [torch.tensor(item["input_ids"]) for item in batch]
     labels = [torch.tensor(item["labels"]) for item in batch]
 
-    input_ids = torch.nn.utils.rnn.pad_sequence(input_ids, batch_first=True, padding_value=pad_token_id)
-    labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=pad_token_id)
+    input_ids = torch.nn.utils.rnn.pad_sequence(
+        input_ids, batch_first=True, padding_value=pad_token_id
+    )
+    labels = torch.nn.utils.rnn.pad_sequence(
+        labels, batch_first=True, padding_value=pad_token_id
+    )
 
     return {"input_ids": input_ids, "labels": labels}
 
@@ -63,14 +71,36 @@ def create_dataloaders(
     val_ds = HFDataset.from_pandas(val_data)
     test_ds = HFDataset.from_pandas(test_data)
 
-    tokenize = lambda examples: _tokenize_fn(examples, tokenizer, max_length)
+    def tokenize(examples):
+        return _tokenize_fn(examples, tokenizer, max_length)
+
     train_ds = train_ds.map(tokenize, batched=False)
     val_ds = val_ds.map(tokenize, batched=False)
     test_ds = test_ds.map(tokenize, batched=False)
 
-    collate = lambda batch: _collate_fn(batch, tokenizer.pad_token_id)
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, collate_fn=collate, num_workers=num_workers)
-    val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, collate_fn=collate, num_workers=num_workers)
-    test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, collate_fn=collate, num_workers=num_workers)
+    def collate(batch):
+        return _collate_fn(batch, tokenizer.pad_token_id)
+
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=batch_size,
+        shuffle=True,
+        collate_fn=collate,
+        num_workers=num_workers,
+    )
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=collate,
+        num_workers=num_workers,
+    )
+    test_loader = DataLoader(
+        test_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        collate_fn=collate,
+        num_workers=num_workers,
+    )
 
     return train_loader, val_loader, test_loader
