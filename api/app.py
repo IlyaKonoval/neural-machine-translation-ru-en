@@ -90,7 +90,9 @@ async def health():
 @app.post("/translate", response_model=TranslateResponse)
 async def translate(request: TranslateRequest):
     if translator is None:
-        raise HTTPException(status_code=503, detail="Model not loaded. Train the model first.")
+        raise HTTPException(
+            status_code=503, detail="Model not loaded. Train the model first."
+        )
 
     start = time.perf_counter()
     result = translator.translate(request.text, beam_size=request.beam_size)

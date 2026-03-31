@@ -37,7 +37,9 @@ class Translator:
         max_len: int = 128,
     ) -> "Translator":
         device = torch.device(device) if isinstance(device, str) else device
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, clean_up_tokenization_spaces=True)
+        tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_name, clean_up_tokenization_spaces=True
+        )
 
         vocab_size = len(tokenizer)
         pad_idx = tokenizer.pad_token_id
@@ -54,7 +56,9 @@ class Translator:
             dropout=dropout,
         ).to(device)
 
-        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+        checkpoint = torch.load(
+            checkpoint_path, map_location=device, weights_only=False
+        )
         if "model_state_dict" in checkpoint:
             model.load_state_dict(checkpoint["model_state_dict"])
         else:
@@ -80,7 +84,9 @@ class Translator:
             for _ in range(self.max_len):
                 output = self.model(src, target)
                 pred_token = output.argmax(2)[:, -1].item()
-                target = torch.cat([target, torch.tensor([[pred_token]], device=self.device)], dim=1)
+                target = torch.cat(
+                    [target, torch.tensor([[pred_token]], device=self.device)], dim=1
+                )
                 if pred_token == self.tokenizer.sep_token_id:
                     break
 

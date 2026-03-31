@@ -36,10 +36,18 @@ def model(params):
 
 class TestTransformer:
     def test_forward_output_shape(self, model, params):
-        src = torch.randint(1, params["vocab_size"], (params["batch_size"], params["src_len"]))
-        tgt = torch.randint(1, params["vocab_size"], (params["batch_size"], params["tgt_len"]))
+        src = torch.randint(
+            1, params["vocab_size"], (params["batch_size"], params["src_len"])
+        )
+        tgt = torch.randint(
+            1, params["vocab_size"], (params["batch_size"], params["tgt_len"])
+        )
         output = model(src, tgt)
-        assert output.shape == (params["batch_size"], params["tgt_len"], params["vocab_size"])
+        assert output.shape == (
+            params["batch_size"],
+            params["tgt_len"],
+            params["vocab_size"],
+        )
 
     def test_src_mask(self, model, params):
         src = torch.tensor([[1, 2, 3, 0, 0]])

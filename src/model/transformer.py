@@ -32,11 +32,23 @@ class MultiHeadAttention(nn.Module):
         key_len = key.shape[1]
         value_len = value.shape[1]
 
-        q = self.q_linear(query).view(batch_size, query_len, self.heads, self.head_dim).permute(0, 2, 1, 3)
-        k = self.k_linear(key).view(batch_size, key_len, self.heads, self.head_dim).permute(0, 2, 1, 3)
-        v = self.v_linear(value).view(batch_size, value_len, self.heads, self.head_dim).permute(0, 2, 1, 3)
+        q = (
+            self.q_linear(query)
+            .view(batch_size, query_len, self.heads, self.head_dim)
+            .permute(0, 2, 1, 3)
+        )
+        k = (
+            self.k_linear(key)
+            .view(batch_size, key_len, self.heads, self.head_dim)
+            .permute(0, 2, 1, 3)
+        )
+        v = (
+            self.v_linear(value)
+            .view(batch_size, value_len, self.heads, self.head_dim)
+            .permute(0, 2, 1, 3)
+        )
 
-        energy = torch.matmul(q, k.permute(0, 1, 3, 2)) / (self.head_dim ** 0.5)
+        energy = torch.matmul(q, k.permute(0, 1, 3, 2)) / (self.head_dim**0.5)
 
         if mask is not None:
             if mask.dim() == 2:
@@ -47,7 +59,11 @@ class MultiHeadAttention(nn.Module):
 
         attention = torch.softmax(energy, dim=-1)
         out = torch.matmul(attention, v)
-        out = out.permute(0, 2, 1, 3).contiguous().view(batch_size, query_len, self.embed_size)
+        out = (
+            out.permute(0, 2, 1, 3)
+            .contiguous()
+            .view(batch_size, query_len, self.embed_size)
+        )
         return self.fc_out(out)
 
 
@@ -82,7 +98,9 @@ class DecoderLayer(nn.Module):
     def forward(self, x, encoder_output, src_mask=None, tgt_mask=None):
         self_attention = self.self_attention(x, x, x, tgt_mask)
         x = self.norm1(x + self.dropout(self_attention))
-        cross_attention = self.cross_attention(x, encoder_output, encoder_output, src_mask)
+        cross_attention = self.cross_attention(
+            x, encoder_output, encoder_output, src_mask
+        )
         x = self.norm2(x + self.dropout(cross_attention))
         forward = self.feed_forward(x)
         x = self.norm3(x + self.dropout(forward))
@@ -95,7 +113,8 @@ class PositionalEncoding(nn.Module):
         pe = torch.zeros(max_len, embed_size)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(
-            torch.arange(0, embed_size, 2).float() * (-torch.log(torch.tensor(10000.0)) / embed_size)
+            torch.arange(0, embed_size, 2).float()
+            * (-torch.log(torch.tensor(10000.0)) / embed_size)
         )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
@@ -103,23 +122,34 @@ class PositionalEncoding(nn.Module):
         self.register_buffer("pe", pe)
 
     def forward(self, x):
-        return x + self.pe[:, :x.size(1)]
+        return x + self.pe[:, : x.size(1)]
 
 
 class Encoder(nn.Module):
-    def __init__(self, src_vocab_size, embed_size, num_layers, heads, ff_hidden_size, dropout, max_len=5000):
+    def __init__(
+        self,
+        src_vocab_size,
+        embed_size,
+        num_layers,
+        heads,
+        ff_hidden_size,
+        dropout,
+        max_len=5000,
+    ):
         super().__init__()
         self.embed_size = embed_size
         self.word_embedding = nn.Embedding(src_vocab_size, embed_size)
         self.position_encoding = PositionalEncoding(embed_size, max_len)
-        self.layers = nn.ModuleList([
-            EncoderLayer(embed_size, heads, ff_hidden_size, dropout)
-            for _ in range(num_layers)
-        ])
+        self.layers = nn.ModuleList(
+            [
+                EncoderLayer(embed_size, heads, ff_hidden_size, dropout)
+                for _ in range(num_layers)
+            ]
+        )
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, mask=None):
-        x = self.word_embedding(x) * (self.embed_size ** 0.5)
+        x = self.word_embedding(x) * (self.embed_size**0.5)
         x = self.position_encoding(x)
         x = self.dropout(x)
         for layer in self.layers:
@@ -128,20 +158,31 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, tgt_vocab_size, embed_size, num_layers, heads, ff_hidden_size, dropout, max_len=5000):
+    def __init__(
+        self,
+        tgt_vocab_size,
+        embed_size,
+        num_layers,
+        heads,
+        ff_hidden_size,
+        dropout,
+        max_len=5000,
+    ):
         super().__init__()
         self.embed_size = embed_size
         self.word_embedding = nn.Embedding(tgt_vocab_size, embed_size)
         self.position_encoding = PositionalEncoding(embed_size, max_len)
-        self.layers = nn.ModuleList([
-            DecoderLayer(embed_size, heads, ff_hidden_size, dropout)
-            for _ in range(num_layers)
-        ])
+        self.layers = nn.ModuleList(
+            [
+                DecoderLayer(embed_size, heads, ff_hidden_size, dropout)
+                for _ in range(num_layers)
+            ]
+        )
         self.fc_out = nn.Linear(embed_size, tgt_vocab_size)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, encoder_output, src_mask=None, tgt_mask=None):
-        x = self.word_embedding(x) * (self.embed_size ** 0.5)
+        x = self.word_embedding(x) * (self.embed_size**0.5)
         x = self.position_encoding(x)
         x = self.dropout(x)
         for layer in self.layers:
@@ -163,8 +204,12 @@ class Transformer(nn.Module):
         dropout=0.1,
     ):
         super().__init__()
-        self.encoder = Encoder(src_vocab_size, embed_size, num_layers, heads, ff_hidden_size, dropout)
-        self.decoder = Decoder(tgt_vocab_size, embed_size, num_layers, heads, ff_hidden_size, dropout)
+        self.encoder = Encoder(
+            src_vocab_size, embed_size, num_layers, heads, ff_hidden_size, dropout
+        )
+        self.decoder = Decoder(
+            tgt_vocab_size, embed_size, num_layers, heads, ff_hidden_size, dropout
+        )
         self.src_pad_idx = src_pad_idx
         self.tgt_pad_idx = tgt_pad_idx
 
@@ -174,7 +219,9 @@ class Transformer(nn.Module):
     def make_tgt_mask(self, tgt):
         batch_size, tgt_len = tgt.shape
         tgt_pad_mask = (tgt != self.tgt_pad_idx).unsqueeze(1).unsqueeze(2)
-        tgt_sub_mask = torch.tril(torch.ones((tgt_len, tgt_len), device=tgt.device)).bool()
+        tgt_sub_mask = torch.tril(
+            torch.ones((tgt_len, tgt_len), device=tgt.device)
+        ).bool()
         tgt_sub_mask = tgt_sub_mask.expand(batch_size, 1, tgt_len, tgt_len)
         return tgt_pad_mask & tgt_sub_mask
 
