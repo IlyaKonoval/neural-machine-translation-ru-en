@@ -5,8 +5,8 @@ from pathlib import Path
 import torch
 from transformers import AutoTokenizer
 
-from ..data.preprocessing import clean_text
-from ..model import Transformer
+from src.data.preprocessing import clean_text
+from src.model import Transformer
 
 
 class Translator:
